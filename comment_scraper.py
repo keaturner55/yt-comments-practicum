@@ -1,22 +1,27 @@
 """
-Youtube comment scraper code.
+Youtube comment scraper
 
 Given a video id (video_id) and valid API key (api_key),
 this script will retrieve comments on a youtube video and save
 relevant fields to a dataframe object. This dataframe is then
 exported to an sqlite database file.
 
-@author: keatu
+@author: Keaton Turner
 """
 
 #%%
 from apiclient.discovery import build
 import pandas as pd
 import datetime
+import os
 import logging
 import sqlite3
 import json
+
+# global vars
 logger = logging.getLogger("comment_scraper")
+DATA_DIR = 'C:\\Users\\keatu\\Regis_archive\\practicum2_data\\'
+
 
 #%%
 
@@ -62,9 +67,10 @@ if __name__ == "__main__":
     start_time = datetime.datetime.now()
     print_time = "{}-{}-{}_{}-{}-{}".format(start_time.year, start_time.month, start_time.day,
                   start_time.hour, start_time.minute, start_time.second)
+
     video_id = "dHY571KZDGU"
-    outdb_name = r"C:\Users\keatu\Regis_archive\practicum2_data\comments.db"
-    key_file =  r"C:\Users\keatu\Regis_archive\practicum2_data\resources\api_key.json"
+    outdb_name = os.path.join(DATA_DIR, "Youtube_Data.db")
+    key_file =  os.path.join(DATA_DIR,"resources\\api_key.json")
     api_key = ""
     with open(key_file) as f:
         api_key = json.load(f)["key"]
