@@ -38,14 +38,10 @@ def get_playlist_ids(channel_list, api_key):
 
 #%%
 
-def get_channel_videos(channel_id, api_key, video_limit = 100):
+def get_channel_videos(playlist_id, api_key, video_limit = 50):
     yt = build("youtube", "v3", developerKey = api_key)
-    
-    
 
-
-
-    response = yt.search().list(part="snippet", channelId =channel_id, maxResults = 100, order='viewCount').execute()
+    response = yt.playlistItems().list(part="snippet", playlistId = playlist_id, maxResults = 50).execute()
     
     rdf = pd.DataFrame()
     video_count = 0
@@ -54,25 +50,29 @@ def get_channel_videos(channel_id, api_key, video_limit = 100):
     if not response:
         logger.ERROR("No response for request")
     while response:
-        if limit:
-            logger.info("Processed max videos for channel: {}".format(channel_id))
-            break
         for item in response["items"]:
             video_count += 1
-            if video_count == 101:
-                limit = True
-                break
-            video_dict = item["snippet"]
-            video_dict["videoId"] = item['id']['videoId']
-            video_dict.pop("thumbnails")
-            video_dict.pop("liveBroadcastContent")
+
+            snippet = item['snippet']
+            video_dict = {}
+            video_dict['publishedAt'] = snippet['publishedAt']
+            video_dict['channelId'] = snippet['channelId']
+            video_dict['channelTitle'] = snippet['channelTitle']
+            video_dict['title'] = snippet['title']
+            video_dict['description'] = snippet['description']
+            video_dict['videoId'] = snippet['resourceId']['videoId']
             
             rdf = rdf.append(video_dict, ignore_index = True)
-        if 'nextPageToken' in response:
+
+            if video_count == video_limit:
+
+                logger.info("Processed max videos for channel: {}".format(playlist_id))
+                break
+        if 'nextPageToken' in response and video_count<video_limit:
             p_token = response['nextPageToken']
-            response = yt.search().list(part="snippet", pageToken=p_token, channelId =channel_id, maxResults = 100, order='viewCount').execute()
+            response = yt.playlistItems().list(part="snippet", pageToken=p_token, playlistId =playlist_id, maxResults = 50).execute()
         else:
-            logger.info("Processed {} videos for channel {}".format(video_count, channel_id))
+            logger.info("Processed {} videos for channel {}".format(video_count, playlist_id))
             break
     return rdf
     
