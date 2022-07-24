@@ -16,25 +16,25 @@ import os
 import logging
 import sqlite3
 import json
-import logging
+
 logger = logging.getLogger("channel_surfer")
-
-
 DATA_DIR = 'C:\\Users\\keatu\\Regis_archive\\practicum2_data\\'
 
 #%%
 
 # gather the playlist_id for each channel in order to build a playlist object containing videos
-def get_playlist_ids(channel_list, api_key):
+# don't need to loop through page_tokens because channel count is under 50
+def get_channel_info(channel_list, api_key):
     yt = build("youtube","v3", developerKey = api_key)
-    channel_response = yt.channels().list(part="contentDetails", id =','.join(channel_list)).execute()
-    channel_playlist_dict = {}
+    channel_response = yt.channels().list(part="contentDetails,statistics", id =','.join(channel_list)).execute()
+    channeldf = pd.DataFrame() 
     for channel_id, response in zip(channel_list,channel_response["items"]):
-        playlist_id = response['contentDetails']['relatedPlaylists']['uploads']
-        channel_playlist_dict[channel_id] = playlist_id
+        cdict = response['statistics']
+        cdict['playlist_id'] = response['contentDetails']['relatedPlaylists']['uploads']
+        cdict['channel_id'] = channel_id
+        channeldf = channeldf.append(cdict, ignore_index=True)
     
-    return channel_playlist_dict
-
+    return channeldf
 
 #%%
 
@@ -75,13 +75,31 @@ def get_channel_videos(playlist_id, api_key, video_limit = 50):
             logger.info("Processed {} videos for channel {}".format(video_count, playlist_id))
             break
     return rdf
+#%%
+
+def get_video_statistics(video_list, api_key):
+    statsdf = pd.DataFrame()
+    yt = build("youtube","v3", developerKey = api_key)
+    response = yt.videos().list(part="statistics", id = ','.join(video_list)).execute()
+
+    while response:
+        for item in response['items']:
+            stats_dict = item['statistics']
+            stats_dict["videoId"] = item['id']
+            statsdf.append(stats_dict, ignore_index=True)
+
+        if 'nextPageToken' in response:
+            p_token = response['nextPageToken']
+            response = yt.videos().list(part="statistics", id = ','.join(video_list),pageToken=p_token).execute()
+
+    return statsdf
     
 #%%
 
-def upload_tosql(df, outdb_name):
+def upload_tosql(df, outdb_name, table):
     #now = datetime.now()
     outcon = sqlite3.connect(outdb_name)
-    df.astype(str).to_sql("videos",con=outcon, if_exists='append')
+    df.astype(str).to_sql(table,con=outcon, if_exists='append')
     outcon.close()
 #%%
 if __name__ == "__main__":
@@ -96,26 +114,29 @@ if __name__ == "__main__":
     key_file =  os.path.join(DATA_DIR,"resources\\api_key.json")
     channel_file = os.path.join(DATA_DIR, "resources\\political_channels.csv")
 
-    channel_df = pd.read_csv(channel_file)
     api_key = ""
     with open(key_file) as f:
         api_key = json.load(f)["key"]
+
+    channel_df = pd.read_csv(channel_file)
+
+    logger.info("Getting channel statistics/details")
+    try:
+        channel_info = get_channel_info(channel_df["youtube_id"], api_key)
+        upload_tosql(channel_info,outdb_name, "channel_info")
+    except Exception as e:
+        logger.error(e)
     
-    df_list = []
     for i, row in channel_df.head(n=2).iterrows():
         logger.info("Analyzing channel {}/{}: {}".format(i+1, len(channel_df),row["outlet"]))
         try:
-            rdf = get_channel_videos(row["youtube_id"],api_key, 100)
-            df_list.append(rdf)
+            rdf = get_channel_videos(row["youtube_id"],api_key, video_limit=50)
+            upload_tosql(rdf, outdb_name, 'videos')
         except Exception as e:
             logger.ERROR(e)
             continue
-    logger.info("Uploading results to database: {}".format(outdb_name))
-    alldf = pd.concat(df_list)
-    upload_tosql(all, outdb_name)
     logger.info("Finished")
     end_time = datetime.datetime.now()
     logger.info("Total runtime: {}".format((end_time - start_time)))    
-    rdf.to_csv('test.csv')
 
 # %%

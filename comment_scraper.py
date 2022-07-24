@@ -45,7 +45,7 @@ def get_comments(video_id, api_key, comment_limit = 1000):
             comment_dict = item["snippet"]["topLevelComment"]["snippet"]
             comment_dict["commentId"] = item["id"]
             comment_dict["videoId"] = video_id
-            comment_dict["authorId"] =  item["snippet"]["topLevelComment"]["snippet"]["authorChannelId"]["value"]
+            comment_dict["channelId"] =  item["snippet"]["channelId"]
             comment_dict.pop("authorChannelId")
             comment_dict.pop("authorChannelUrl")
             comment_dict.pop("authorProfileImageUrl")
