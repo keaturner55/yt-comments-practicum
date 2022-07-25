@@ -17,6 +17,8 @@ import os
 import logging
 import sqlite3
 import json
+import traceback
+import numpy as np
 
 # global vars
 logger = logging.getLogger("comment_scraper")
@@ -24,17 +26,17 @@ DATA_DIR = 'C:\\Users\\keatu\\Regis_archive\\practicum2_data\\'
 
 
 #%%
-def get_comments(video_id, api_key, comment_limit = 1000):
+def get_comments(video_id, api_key, comment_limit = 100):
     
     yt = build("youtube", "v3", developerKey = api_key)
-    video_response = yt.commentThreads().list(part = 'snippet',videoId = video_id).execute()
+    video_response = yt.commentThreads().list(part = 'snippet',videoId = video_id, order='relevance').execute()
     
     cdf = pd.DataFrame()
     comment_count = 0
     limit = False
 
     if not video_response:
-        logger.ERROR("No response for request")
+        logger.error("No response for request")
         
     while video_response:
         for item in video_response["items"]:
@@ -45,7 +47,7 @@ def get_comments(video_id, api_key, comment_limit = 1000):
             comment_dict = item["snippet"]["topLevelComment"]["snippet"]
             comment_dict["commentId"] = item["id"]
             comment_dict["videoId"] = video_id
-            comment_dict["channelId"] =  item["snippet"]["channelId"]
+            #comment_dict["channelId"] =  item["snippet"]["channelId"]
             comment_dict.pop("authorChannelId")
             comment_dict.pop("authorChannelUrl")
             comment_dict.pop("authorProfileImageUrl")
@@ -58,9 +60,9 @@ def get_comments(video_id, api_key, comment_limit = 1000):
 
         if 'nextPageToken' in video_response and comment_count<comment_limit:
             p_token = video_response['nextPageToken']
-            video_response = yt.commentThreads().list(part = 'snippet',videoId = video_id,pageToken = p_token).execute()
+            video_response = yt.commentThreads().list(part = 'snippet',videoId = video_id, order='relevance',pageToken = p_token).execute()
         else:
-            logger.info("Processed {} videos for channel {}".format(comment_count, video_id))
+            logger.info("Processed {} comments for video {}".format(comment_count, video_id))
             break
     return cdf
 
@@ -89,16 +91,24 @@ if __name__ == "__main__":
     with open(key_file) as f:
         api_key = json.load(f)["key"]
     
-    logging.basicConfig(filename=os.path.join(DATA_DIR,"comment_scraper_logs","{}.log".format(print_time)),format='%(asctime)s %(message)s',
+    logfile = os.path.join(DATA_DIR,"comment_scraper_logs","{}.log".format(print_time))
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         datefmt='%m-%d-%Y %I:%M:%S', level = logging.INFO)
 
     video_df = get_sql_table("videos",outdb_name)
+    video_df['view_count'] = video_df["viewCount"].replace('nan',0)
+
+    # grab top n videos per channel
+    top_videos = video_df.sort_values("view_count", ascending=False).groupby("channelId").head(20).reset_index(drop=True)
     
-    for video_id in video_df.head(n=2)['videoId'].tolist():
-        logger.info("Analyzing video: {}".format(video_id))
-        cdf = get_comments(video_id,api_key)
-        upload_tosql(cdf, outdb_name)
-        logger.info("Uploading results to database: {}".format(outdb_name))
+    for i, row in top_videos.iterrows():
+        video_id = row['videoId']
+        logger.info("Analyzing channel: {}, video: {}".format(row['channelId'],video_id))
+        try:
+            cdf = get_comments(video_id,api_key, comment_limit=200)
+            upload_tosql(cdf, outdb_name)
+        except:
+            traceback.print_exc()
     #upload_tosql(cdf, outdb_name)
     logger.info("Finished")
     end_time = datetime.datetime.now()
