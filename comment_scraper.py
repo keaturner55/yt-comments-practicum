@@ -51,6 +51,7 @@ def get_comments(video_id, api_key, comment_limit = 100):
             comment_dict.pop("authorChannelId")
             comment_dict.pop("authorChannelUrl")
             comment_dict.pop("authorProfileImageUrl")
+            comment_dict.pop('moderationStatus', None)
             
             cdf = cdf.append(comment_dict, ignore_index = True)
 
@@ -96,20 +97,26 @@ if __name__ == "__main__":
                         datefmt='%m-%d-%Y %I:%M:%S', level = logging.INFO)
 
     video_df = get_sql_table("videos",outdb_name)
-    video_df['view_count'] = video_df["viewCount"].replace('nan',0)
+    video_df = video_df.replace('nan',0)
 
-    # grab top n videos per channel
-    top_videos = video_df.sort_values("view_count", ascending=False).groupby("channelId").head(20).reset_index(drop=True)
+    # grab most viewed videos per channel (top 20)
+    top_videos = video_df.sort_values("viewCount", ascending=False).groupby("channelId").head(20).reset_index(drop=True)
     
-    for i, row in top_videos.iterrows():
-        video_id = row['videoId']
-        logger.info("Analyzing channel: {}, video: {}".format(row['channelId'],video_id))
+    top_videos = top_videos.loc[top_videos["channelId"]=='UCaXkIU1QidjPwiAYu6GcHjg']
+
+    # controversial topic videos
+    #test_videos = {'MSNBC':'1pJcU253iRU','Daily Caller':'bZnlFEUvn7Y'}
+
+    testdf = video_df.loc[(video_df["channelId"]=='UCaXkIU1QidjPwiAYu6GcHjg') & (video_df["commentCount"]>=1000) & (video_df["commentCount"]<=2000) ]
+    for i, row in testdf.iterrows():
+    #for channel, vid_id in test_videos.items():
+        video_id = row["videoId"]
+        logger.info("Analyzing channel: {}, video: {}".format(row["channelTitle"],row['title']))
         try:
-            cdf = get_comments(video_id,api_key, comment_limit=200)
+            cdf = get_comments(video_id,api_key, comment_limit=1000000)
             upload_tosql(cdf, outdb_name)
         except:
             traceback.print_exc()
-    #upload_tosql(cdf, outdb_name)
     logger.info("Finished")
     end_time = datetime.datetime.now()
     logger.info("Total runtime: {}".format((end_time - start_time)))    

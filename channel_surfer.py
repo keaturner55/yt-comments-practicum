@@ -141,7 +141,7 @@ if __name__ == "__main__":
     for i, row in channel_info.iterrows():
         logger.info("Analyzing channel {}/{}".format(i+1, len(channel_df)))
         try:
-            rdf = get_channel_videos(row["playlist_id"],api_key, video_limit=500)
+            rdf = get_channel_videos(row["playlist_id"],api_key, video_limit=100000)
             vid_statsdf = get_video_statistics(rdf['videoId'], api_key)
             videodf = rdf.merge(vid_statsdf, how="inner", on="videoId")
             upload_tosql(videodf, outdb_name, 'videos')
