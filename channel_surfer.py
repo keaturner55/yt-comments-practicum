@@ -104,12 +104,13 @@ def get_video_statistics(video_list, api_key):
     return statsdf
     
 #%%
-
-def upload_tosql(df, outdb_name, table):
+def upload_tosql(df, table, outdb_name):
     #now = datetime.now()
     outcon = sqlite3.connect(outdb_name)
     df.astype(str).to_sql(table,con=outcon, if_exists='append')
     outcon.close()
+
+
 #%%
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
