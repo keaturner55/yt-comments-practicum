@@ -42,7 +42,7 @@ def clean_text(text):
 if __name__=="__main__":
     DATA_DIR = 'C:\\Users\\keatu\\Regis_archive\\practicum2_data\\'
     colnames = ["target","id","date","flag","user","text"]
-    s140df = ddf.read_csv(os.path.join(DATA_DIR,"resources","s140_train.csv"), names = colnames, encoding='latin-1')
+    s140df = ddf.read_csv(os.path.join(DATA_DIR,"resources","s140_train.csv"), names = colnames, encoding='latin-1', blocksize=25e6)
     s140df['preproc_text'] = s140df['text'].apply(clean_text)
     s140df.to_csv(os.path.join(DATA_DIR,"s140_processed.csv"), index=False)
 # %%
