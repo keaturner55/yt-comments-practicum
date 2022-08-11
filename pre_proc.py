@@ -21,7 +21,7 @@ def clean_text(text_list):
     """
     lemmatizer = WordNetLemmatizer()
     tokenizer = TweetTokenizer()
-    stopwords_en=stopwords.words('english')
+    #stopwords_en=stopwords.words('english')
     all_text = []
     for each_text in text_list:
         lemmatized_tokens = []
@@ -36,8 +36,8 @@ def clean_text(text_list):
             else: 
                 pos='a'
             lemmatized_token=lemmatizer.lemmatize(each_token, pos)
-            if lemmatized_token not in stopwords_en:
-                lemmatized_tokens.append(lemmatized_token)
+            #if lemmatized_token not in stopwords_en: # try keeping stopwords
+            lemmatized_tokens.append(lemmatized_token)
         all_text.append(' '.join(lemmatized_tokens))
     return all_text
 
