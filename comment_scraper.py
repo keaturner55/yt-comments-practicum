@@ -96,28 +96,28 @@ if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         datefmt='%m-%d-%Y %I:%M:%S', level = logging.INFO)
 
-    #video_df = get_sql_table("videos",outdb_name)
-    #video_df = video_df.replace('nan',0)
+    video_df = get_sql_table("videos",outdb_name)
+    video_df = video_df.replace('nan',0)
 
     # grab most viewed videos per channel (top 20)
-    #top_videos = video_df.sort_values("viewCount", ascending=False).groupby("channelId").head(20).reset_index(drop=True)
+    top_videos = video_df.sort_values("viewCount", ascending=False).groupby("channelId").head(20).reset_index(drop=True)
     
-    #top_videos = top_videos.loc[top_videos["channelId"]=='UCaXkIU1QidjPwiAYu6GcHjg']
+    top_videos = top_videos.loc[top_videos["channelId"]=='UCaXkIU1QidjPwiAYu6GcHjg']
 
     # controversial topic videos
-    #test_videos = {'MSNBC':'1pJcU253iRU','Daily Caller':'bZnlFEUvn7Y'}
+    test_videos = {'MSNBC':'1pJcU253iRU','Daily Caller':'bZnlFEUvn7Y'}
 
     #testdf = video_df.loc[(video_df["channelId"]=='UCaXkIU1QidjPwiAYu6GcHjg') & (video_df["commentCount"]>=1000) & (video_df["commentCount"]<=2000) ]
     #for i, row in testdf.iterrows():
-    #for channel, vid_id in test_videos.items():
-    #    video_id = row["videoId"]
-    #    logger.info("Analyzing channel: {}, video: {}".format(row["channelTitle"],row['title']))
-    #    try:
-    #        cdf = get_comments(video_id,api_key, comment_limit=1000000)
-    #        upload_tosql(cdf, outdb_name)
-    #    except:
-    #        traceback.print_exc()
-    cdf = get_comments("NN1RWBgZ62w",api_key, comment_limit=1000000)
+    for channel, vid_id in test_videos.items():
+        video_id = row["videoId"]
+        logger.info("Analyzing channel: {}, video: {}".format(row["channelTitle"],row['title']))
+        try:
+            cdf = get_comments(video_id,api_key, comment_limit=1000000)
+            upload_tosql(cdf, outdb_name)
+        except:
+            traceback.print_exc()
+    #cdf = get_comments("NN1RWBgZ62w",api_key, comment_limit=1000000)
     upload_tosql(cdf, outdb_name)
     logger.info("Finished")
     end_time = datetime.datetime.now()
