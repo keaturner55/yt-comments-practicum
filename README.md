@@ -23,4 +23,11 @@ Here several text pre-processing techniques were tested as part of the model tra
 ### [Naive Bayes Model](./1naivebayes.ipynb)
 Model training and validation for the Naive Bayes Bernoulli model. In this script you'll see the messy iterative process behind model optimization.
 
-### []
+### [VADER vs Pattern](./rule-based_models.ipynb)
+Test VADER and Pattern package sentiment analysers and see how they perform on the test data.
+
+### [Final Analysis](./yt_comment_analysis.ipynb)
+Put it all together to provide an analysis of comments that aggregates at different levels
+- Individual videos
+- YouTube channels
+- Entire content genres (e.g. political)
